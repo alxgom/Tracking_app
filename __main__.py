@@ -4,12 +4,15 @@ from tkinter import ttk
 from tkcalendar import Calendar
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 import pandas as pd
 from datetime import datetime
 
+#from structure.stopwatch import Stopwatch
+
 #change plot label to dates, show only values 
 
-class TaskTrackerApp:
+class TaskTrackerApp(tk.Tk):
     def __init__(self, master):
         self.master = master
         master.title("Task Tracker")
@@ -72,6 +75,11 @@ class TaskTrackerApp:
         # Bind the closing event to the quit method
         master.protocol("WM_DELETE_WINDOW", self.quit)
 
+        # Add the stopwatch component
+        #self.stopwatch = Stopwatch(self)
+        #self.stopwatch.pack()
+
+
     def populate_listbox(self):
         self.listbox.delete(0, tk.END)  # Clear existing items
         for item in self.tasks.columns:
@@ -88,7 +96,8 @@ class TaskTrackerApp:
         if current_date not in df.index:
             missing_dates = pd.date_range(start=df.index[-1] + pd.Timedelta(days=1), end=current_date)
             for date in missing_dates:
-                df.loc[date] = [None] * len(df.columns)
+                df.loc[date] = [0] * len(df.columns)
+            self.save_tasks()
 
     def new_variable(self,  string_var):
         if string_var in self.tasks.columns: 
@@ -99,6 +108,7 @@ class TaskTrackerApp:
             try:
                 self.tasks = pd.read_csv(self.file_path, index_col = 0)
                 self.tasks.index = pd.to_datetime(self.tasks.index)  # Ensure index is in datetime format
+                self.update_dates( self.tasks, self.current_date)
                # self.update_dates(self.tasks, self.current_date) #update last date to current date
             except FileNotFoundError:
                 pass
@@ -177,19 +187,34 @@ class TaskTrackerApp:
 
     def plot_time_spent(self):
         selected_tasks = [task for task, var in self.selected_tasks if var.get() == 1]
+        maxval=0
+
         if self.canvas:
             self.canvas.get_tk_widget().destroy()
         fig, ax = plt.subplots(figsize=(3, 2))
         for task in selected_tasks:
            # time_spent = self.tasks.loc[self.tasks[task] == task].values
-            ax.plot(self.tasks.index.values, self.tasks[task], marker='o', markersize=4, label=task)
-        ax.set_xlabel("Date")
-        ax.set_ylabel("Time")
+            ax.plot(self.tasks.index.values, self.tasks[task]/60, marker='o', markersize=4, label=task)
+        # Set the x-axis format to show hours and minutes
+            maxval=max(maxval,self.tasks[task].max()/60)    
+        plt.yticks(range(0, int(maxval)+1)) 
+
+        def time_formatter(y, _):
+            hours = int(y)
+            minutes = int((y - int(y)) * 60)
+            return f"{hours:02d}:{minutes:02d}"
+
+        plt.gca().xaxis.set_major_formatter(plt.matplotlib.dates.DateFormatter('%m-%d'))
+        plt.gca().yaxis.set_major_formatter(time_formatter)
+        print(maxval)      
+        #ax.set_xlabel("Date")
+        ax.set_ylabel("Time [Hs]")
         #ax.set_title("Time Spent on Selected Tasks")
         plt.xticks(fontsize=8)
+        plt.yticks(fontsize=8)
         # Rotate x-axis labels if needed
         plt.xticks(rotation=45)
-        ax.legend()
+        ax.legend(fontsize='small')
         plt.tight_layout()
         ax.grid(True)
 
