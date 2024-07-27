@@ -9,10 +9,10 @@ import pandas as pd
 from datetime import datetime
 
 #from structure.stopwatch import Stopwatch
-
+from structure.loading_n_saving import *
 #change plot label to dates, show only values 
 
-class TaskTrackerApp(tk.Tk):
+class TaskTrackerApp():
     def __init__(self, master):
         self.master = master
         master.title("Task Tracker")
@@ -62,22 +62,51 @@ class TaskTrackerApp(tk.Tk):
         self.time_interval_entry.grid(row=2, column=2)
         self.time_interval_entry.get()
 
-        """
-        self.update_button = tk.Button(master, text="Update Time Spent", command=self.update_time)
-        self.update_button.grid(row=2, column=2)
-        self.date_label = tk.Label(master, text="Current Date:")
-        self.date_label.grid(row=3, column=0, sticky="w")
-        """
 
-        self.canvas = None
+
+    def load_tasks(self):
+        try:
+            self.tasks = pd.read_csv(self.file_path, index_col = 0)
+            self.tasks.index = pd.to_datetime(self.tasks.index)  # Ensure index is in datetime format
+            self.update_dates( self.tasks, self.current_date)
+            # self.update_dates(self.tasks, self.current_date) #update last date to current date
+        except FileNotFoundError:
+            pass
+
+    def save_tasks(self):
+        self.tasks.to_csv(self.file_path)
+
+    def add_task(self, task_name):
+        if task_name:
+            self.new_variable(task_name)
+            self.update_everyting()
+            
+    def update_everyting(self):
+        self.save_tasks()
+        self.load_tasks()
         self.display_tasks_with_checkbox()
-        self.listbox.bind("<ButtonRelease-1>", self.on_select)
-        # Bind the closing event to the quit method
-        master.protocol("WM_DELETE_WINDOW", self.quit)
+        self.populate_listbox()
 
-        # Add the stopwatch component
-        #self.stopwatch = Stopwatch(self)
-        #self.stopwatch.pack()
+
+    def display_tasks_with_checkbox(self):
+        #for widget in self.master.winfo_children():
+            #   widget.destroy()
+        self.tasklabel = tk.Label(self.master, text="Select tasks to plot:")
+        self.tasklabel.grid(row=4, column=0, sticky="w")
+        self.selected_tasks = []
+        self.taskoptions = self.tasks.columns
+        for t in range(len(self.taskoptions)):
+            var = tk.IntVar()
+            task_checkbutton = tk.Checkbutton(self.master, text=self.taskoptions[t], variable=var)
+        #for index, row in self.tasks.iterrows():
+            #   var = tk.IntVar()
+            # task_checkbutton = tk.Checkbutton(self.master, text=row['Task'], variable=var)
+            task_checkbutton.grid(row=5+t, column=1, sticky="w")
+            self.selected_tasks.append((self.taskoptions[t], var))
+        #self.add_button = tk.Button(self.master, text="Add Task", command=self.add_task)
+        #self.add_button.pack()
+        self.plot_button = tk.Button(self.master, text="Plot Time Spent", command=self.plot_time_spent)
+        self.plot_button.grid(row=4, column=1, sticky="w")
 
 
     def populate_listbox(self):
@@ -104,28 +133,62 @@ class TaskTrackerApp(tk.Tk):
             print('variable already used')
         else: self.tasks[string_var] = 0 
 
-    def load_tasks(self):
-            try:
-                self.tasks = pd.read_csv(self.file_path, index_col = 0)
-                self.tasks.index = pd.to_datetime(self.tasks.index)  # Ensure index is in datetime format
-                self.update_dates( self.tasks, self.current_date)
-               # self.update_dates(self.tasks, self.current_date) #update last date to current date
-            except FileNotFoundError:
-                pass
 
-    def save_tasks(self):
-        self.tasks.to_csv(self.file_path)
+    def on_select(self, event):
+            # Get the index of the selected item
+            index = self.listbox.curselection()[0]
+            # Get the value of the selected item
+            self.selected_item = self.listbox.get(index)
+            self.update_choice_disp()
 
-    def add_task(self, task_name):
-        if task_name:
-            self.new_variable(task_name)
-            self.update_everyting()
-            
-    def update_everyting(self):
-        self.save_tasks()
-        self.load_tasks()
+    def update_choice_disp(self):
+        self.val = self.tasks.loc[self.date_active, self.selected_item]
+        self.choice_display.config(text='Date:\t'+ self.date_active +
+                            '\n'+'Variable:\t' + self.selected_item +
+                                '\n Value:\t' + str(self.val))
+
+
+    def add_value(self):
+        
+        self.tasks.loc[self.date_active, self.selected_item] += int(self.time_interval_entry.get())
+        self.val = self.tasks.loc[self.date_active, self.selected_item]
+        self.update_everyting()
+
+
+    def show_add_task_window(self):
+        add_task_window = tk.Toplevel(self.master)
+        add_task_window.title("Add Task")
+
+        label_task_name = tk.Label(add_task_window, text="Task Name:")
+        label_task_name.grid(row=0, column=0, padx=3, pady=3)
+        
+        entry_task_name = tk.Entry(add_task_window)
+        entry_task_name.grid(row=0, column=1, padx=3, pady=3)
+
+        add_button = tk.Button(add_task_window, text="Add", command=lambda: self.add_task(entry_task_name.get()))
+        add_button.grid(row=2, column=1, padx=3, pady=3)
+        
+
+        """
+        self.update_button = tk.Button(master, text="Update Time Spent", command=self.update_time)
+        self.update_button.grid(row=2, column=2)
+        self.date_label = tk.Label(master, text="Current Date:")
+        self.date_label.grid(row=3, column=0, sticky="w")
+        """
+
+        self.canvas = None
         self.display_tasks_with_checkbox()
-        self.populate_listbox()
+        self.listbox.bind("<ButtonRelease-1>", self.on_select)
+        # Bind the closing event to the quit method
+        master.protocol("WM_DELETE_WINDOW", self.quit)
+
+        # Add the stopwatch component
+        #self.stopwatch = Stopwatch(self)
+        #self.stopwatch.pack()
+
+
+    
+    
     """
     def update_time(self):
         task_index = self.listbox.curselection()
@@ -138,38 +201,8 @@ class TaskTrackerApp(tk.Tk):
                 self.display_tasks_with_checkbox()
 
     """
-    def on_select(self, event):
-        # Get the index of the selected item
-        index = self.listbox.curselection()[0]
-        # Get the value of the selected item
-        self.selected_item = self.listbox.get(index)
-        self.update_choice_disp()
-
-    def update_choice_disp(self):
-        self.val = self.tasks.loc[self.date_active, self.selected_item]
-        self.choice_display.config(text='Date:\t'+ self.date_active +
-                            '\n'+'Variable:\t' + self.selected_item +
-                                '\n Value:\t' + str(self.val))
-
-    def display_tasks_with_checkbox(self):
-        #for widget in self.master.winfo_children():
-         #   widget.destroy()
-        self.tasklabel = tk.Label(self.master, text="Select tasks to plot:")
-        self.tasklabel.grid(row=4, column=0, sticky="w")
-        self.selected_tasks = []
-        self.taskoptions = self.tasks.columns
-        for t in range(len(self.taskoptions)):
-            var = tk.IntVar()
-            task_checkbutton = tk.Checkbutton(self.master, text=self.taskoptions[t], variable=var)
-        #for index, row in self.tasks.iterrows():
-         #   var = tk.IntVar()
-           # task_checkbutton = tk.Checkbutton(self.master, text=row['Task'], variable=var)
-            task_checkbutton.grid(row=5+t, column=1, sticky="w")
-            self.selected_tasks.append((self.taskoptions[t], var))
-        #self.add_button = tk.Button(self.master, text="Add Task", command=self.add_task)
-        #self.add_button.pack()
-        self.plot_button = tk.Button(self.master, text="Plot Time Spent", command=self.plot_time_spent)
-        self.plot_button.grid(row=4, column=1, sticky="w")
+    
+    
 
 
     def show_calendar(self):
@@ -222,26 +255,6 @@ class TaskTrackerApp(tk.Tk):
         self.canvas.draw()
         self.canvas.get_tk_widget().grid(row=2, column=4, columnspan=2, rowspan=6, sticky="w")
 
-    def add_value(self):
-     
-        self.tasks.loc[self.date_active, self.selected_item] += int(self.time_interval_entry.get())
-        self.val = self.tasks.loc[self.date_active, self.selected_item]
-        self.update_everyting()
-
-
-    def show_add_task_window(self):
-        add_task_window = tk.Toplevel(self.master)
-        add_task_window.title("Add Task")
-
-        label_task_name = tk.Label(add_task_window, text="Task Name:")
-        label_task_name.grid(row=0, column=0, padx=3, pady=3)
-       
-        entry_task_name = tk.Entry(add_task_window)
-        entry_task_name.grid(row=0, column=1, padx=3, pady=3)
-
-        add_button = tk.Button(add_task_window, text="Add", command=lambda: self.add_task(entry_task_name.get()))
-        add_button.grid(row=2, column=1, padx=3, pady=3)
-      
 
     def quit(self):
             self.master.quit()  # Quit the Tkinter application
