@@ -1,0 +1,58 @@
+
+```yaml
+---
+description: "Normes d'estil i bones pràctiques per a React i TypeScript"
+globs: ["src/**/*.tsx", "src/**/*.ts"]
+alwaysApply: false
+---
+
+# Estil i Convencions React
+
+## Components
+- **Utilitza components funcionals** amb `React.FC` o tipant les props explícitament.
+- **Exporta els components per defecte** només per a pàgines; utilitza exports amb nom per a components reutilitzables.
+- **Mantingues els components petits i enfocats** (idealment < 200 línies).
+
+## Hooks i Estat
+- **Segueix les regles dels hooks**: només crida'ls al nivell superior i des de components React.
+- **Utilitza `useState`** per a estat local simple.
+- **Utilitza `useReducer`** per a lògica d'estat complexa.
+- **Crea hooks personalitzats** per a lògica reutilitzable.
+
+## Props i Tipatge
+- **Tipa totes les props** amb TypeScript. No utilitzis `any`.
+- **Utilitza `interface` per a props** que s'exportin i `type` per a unions i utilitats.
+- **Marca les props opcionals amb `?`** i proporciona valors per defecte quan sigui necessari.
+
+## Exemples de Codi
+
+### Correcte
+```tsx
+interface ButtonProps {
+  /** Text que es mostra al botó */
+  label: string;
+  /** Funció que s'executa en fer clic */
+  onClick: () => void;
+  variant?: 'primary' | 'secondary';
+}
+
+export const Button: React.FC<ButtonProps> = ({ 
+  label, 
+  onClick, 
+  variant = 'primary' 
+}) => {
+  return (
+    <button className={`btn btn-${variant}`} onClick={onClick}>
+      {label}
+    </button>
+  );
+};
+```
+
+### Incorrecte
+```tsx
+const Button = (props: any) => { // Evitar any
+  return <button>{props.label}</button>;
+};
+```
+```
