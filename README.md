@@ -1,6 +1,8 @@
 # ⏱ Tracking App
 
-A modern, full-stack task tracking application built with **FastAPI** (Backend) and **React + Vite** (Frontend). Designed for simplicity, efficiency, and security.
+![Tracking App Screenshot](./screenshot.png)
+
+A modern, full-stack task tracking application built with **FastAPI** (Backend) and **React + Vite** (Frontend). Designed for simplicity, efficiency, and security with a beautiful glassmorphism aesthetic.
 
 ## 🚀 Features
 
